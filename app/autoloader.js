@@ -33,9 +33,9 @@ var template = '                                                            \n\
 })();                                                                       \n\
 ';
 
-var libLoader = function(section, order) {
+var libLoader = function(section, files) {
     var paths = [];
-    order.forEach(function(path) {
+    files.forEach(function(path) {
         paths.push("'@" + section + "/" + path + "'");
     });
     var body = template.replace("@paths@", paths.join(",\n"));    
@@ -72,18 +72,15 @@ var notFound = function() {
 var App = function(config) {
     
     var sections = CONFIG.parse(config);
-    var group, root, order, urls = {};
+    var group, root, files, urls = {};
     for (var section in sections) {
         group = sections[section];
-        // make root relative to config
-        root = FS.join(FS.directory(config), group.root[0]);
-        group.root = [root];
-        order = MERGE.order(group);
+        files = MERGE.concat(group, {listOnly: true});
         // create lib loader
-        urls["/" + section] = libLoader(section, order);
+        urls["/" + section] = libLoader(section, files);
         // create static loader for all scripts in lib
-        var app = STATIC(root)(notFound);
-        urls["/@" + section] = app; 
+        var app = STATIC(FS.directory(config))(notFound);
+        urls["/@" + section] = app;
     }
     return URLMap(urls);
     
